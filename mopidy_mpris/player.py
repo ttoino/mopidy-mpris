@@ -5,6 +5,8 @@ https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html
 
 
 import logging
+import uritools
+import os
 
 from gi.repository.GLib import Variant
 from pydbus.generic import signal
@@ -276,7 +278,19 @@ class Player(Interface):
             largest_image = sorted(
                 images[track.uri], key=lambda i: i.width or 0, reverse=True
             )[0]
-            return largest_image.uri
+
+            uri = largest_image.uri
+
+            if uritools.isabsuri(uri) or (uritools.isabspath(uri) and os.path.exists(uri)):
+                return uri
+
+            host = self.config["http"]["hostname"]
+            port = self.config["http"]["port"]
+            base = uritools.uricompose("http", host=host, port=port)
+
+            uri = uritools.urijoin(base, uri)
+
+            return uri
 
     @property
     def Volume(self):
